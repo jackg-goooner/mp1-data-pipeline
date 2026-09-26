@@ -6,6 +6,8 @@ import sys
 
 from pathlib import Path
 
+from data_loaders import load_data
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,13 @@ def main():
     if not validate_input(args.input):
         sys.exit(1)
 
-    # Part 1 validates the input; later parts add loading and processing.
+    try:
+        data = load_data(args.input)
+    except ValueError:
+        sys.exit(1)
+
+    # Part 2 loads the data; later parts will transform and write it.
+    return data
 
 
 if __name__ == "__main__":
