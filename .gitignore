@@ -11,3 +11,5 @@ venv/
 Thumbs.db
 # Pipeline output
 cleaned_data.csv
+
+output/

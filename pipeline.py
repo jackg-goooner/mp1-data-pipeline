@@ -1,30 +1,26 @@
-"""Command-line entry point for the MP1 data pipeline."""
+"""Command-line entry point for the complete MP1 data pipeline."""
 
 import argparse
 import logging
 import sys
 
-from pathlib import Path
-
-from data_loaders import load_data
-from data_processor import process_data, create_cleaning_report
+from src import (
+    create_cleaning_report,
+    load_data,
+    process_data,
+    save_data,
+    setup_logging,
+    validate_dataframe,
+    validate_input,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(verbose=False):
-    """Configure console logging for the pipeline."""
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
-        datefmt="%H:%M:%S",
-    )
-
-
 def parse_arguments():
     """Parse command-line arguments for the pipeline."""
-    parser = argparse.ArgumentParser(description="Load data files from the command line.")
+    parser = argparse.ArgumentParser(description="Load, validate, and clean data files.")
     parser.add_argument("--input", "-i", required=True, help="Path to the input file")
     parser.add_argument("--config", required=True, help="Path to the YAML configuration file")
     parser.add_argument("--output", "-o", required=True, help="Path to the output file")
@@ -32,19 +28,8 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def validate_input(filepath):
-    """Return whether filepath exists and refers to a file, logging the result."""
-    path = Path(filepath)
-    if not path.is_file():
-        logger.error("Input file not found: %s", filepath)
-        return False
-
-    logger.info("Input file validated: %s", filepath)
-    return True
-
-
 def main():
-    """Validate and load the requested input file."""
+    """Run the configured load, validation, cleaning, and save workflow."""
     args = parse_arguments()
     setup_logging(args.verbose)
     logger.debug(
@@ -54,28 +39,45 @@ def main():
         args.output,
     )
 
-    if not validate_input(args.input):
-        sys.exit(1)
-    if not validate_input(args.config):
+    if not validate_input(args.input) or not validate_input(args.config):
         sys.exit(1)
 
     try:
         data = load_data(args.input)
         config = load_data(args.config)
-    except ValueError:
+    except (ValueError, OSError):
         sys.exit(1)
 
-    original_data = data.copy()
+    validation = config.get("validation", {})
+    required_columns = validation.get("required_columns", [])
+    numeric_columns = validation.get("numeric_columns", [])
+    rows_before_validation = len(data)
     try:
-        cleaned_data = process_data(data, config)
+        validated_data = validate_dataframe(data, required_columns, numeric_columns)
     except ValueError:
         sys.exit(1)
+    logger.info(
+        "Validation complete: %s -> %s rows",
+        rows_before_validation,
+        len(validated_data),
+    )
 
-    report = create_cleaning_report(original_data, cleaned_data)
-    print(report)
-    logger.info("Processing complete: %s → %s rows", report["rows_before"], report["rows_after"])
-    cleaned_data.to_csv(args.output, index=False)
+    try:
+        cleaned_data = process_data(validated_data, config)
+    except (KeyError, ValueError):
+        sys.exit(1)
+
+    report = create_cleaning_report(validated_data, cleaned_data)
+    logger.info(
+        "Processing complete: %s -> %s rows",
+        report["rows_before"],
+        report["rows_after"],
+    )
+    save_data(cleaned_data, args.output)
     logger.info("Saved cleaned data to %s", args.output)
+
+    print("\nCleaning report:")
+    print(report)
 
 
 if __name__ == "__main__":
