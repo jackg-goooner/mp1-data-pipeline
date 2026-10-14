@@ -1,17 +1,13 @@
 import logging
-
 import pandas as pd
 
-
 logger = logging.getLogger(__name__)
-
 
 def remove_duplicates(df):
     """Return ``df`` without duplicate rows."""
     result = df.drop_duplicates()
     logger.debug("remove_duplicates: %s → %s rows", len(df), len(result))
     return result
-
 
 def handle_missing(df, axis="rows"):
     """Drop rows or columns containing missing values."""
