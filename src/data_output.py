@@ -1,5 +1,3 @@
-"""Output helpers for pipeline results."""
-
 import logging
 from pathlib import Path
 
