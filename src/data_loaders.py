@@ -1,5 +1,3 @@
-"""Load CSV, JSON, and YAML data files."""
-
 import json
 import logging
 from pathlib import Path
