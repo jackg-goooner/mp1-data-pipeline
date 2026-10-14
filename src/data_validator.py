@@ -1,7 +1,4 @@
-"""Validation helpers for pipeline input data."""
-
 import logging
-
 import pandas as pd
 
 
