@@ -1,5 +1,3 @@
-"""Reusable, configuration-driven DataFrame cleaning operations."""
-
 import logging
 
 import pandas as pd
