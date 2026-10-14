@@ -1,5 +1,3 @@
-"""Public interface for the MP1 data pipeline."""
-
 from .data_loaders import load_data
 from .data_output import save_data
 from .data_processor import process_data, create_cleaning_report
